@@ -21,6 +21,55 @@ interface Marker {
   created_at?: string
 }
 
+interface ContextMenuProps {
+  x: number
+  y: number
+  onAddSite: () => void
+  onClose: () => void
+}
+
+function ContextMenu({ x, y, onAddSite, onClose }: ContextMenuProps) {
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        onClose();
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [onClose]);
+
+  // Adjust position to keep menu within viewport
+  const adjustedY = y + 200 > window.innerHeight ? y - 100 : y;
+  const adjustedX = x + 200 > window.innerWidth ? x - 150 : x;
+
+  return (
+    <div
+      ref={menuRef}
+      className="absolute z-50 bg-black/90 rounded-lg shadow-lg w-40 py-2"
+      style={{
+        top: `${adjustedY}px`,
+        left: `${adjustedX}px`,
+      }}
+    >
+      <button
+        className="w-full px-4 py-2 text-white hover:bg-blue-600 text-left"
+        onClick={onAddSite}
+      >
+        Put my site here
+      </button>
+      <button
+        className="w-full px-4 py-2 text-white hover:bg-blue-600 text-left"
+        onClick={onClose}
+      >
+        Cancel
+      </button>
+    </div>
+  );
+}
+
 interface AddSiteFormProps {
   position: mapboxgl.LngLat
   onSubmit: (data: Omit<Marker, 'id' | 'created_at' | 'longitude' | 'latitude'>) => void
@@ -45,90 +94,94 @@ function AddSiteForm({ position, onSubmit, onClose }: AddSiteFormProps) {
   }
 
   return (
-    <div className="absolute z-10 bg-black/90 text-white p-4 rounded-lg shadow-lg w-80">
-      <button 
-        onClick={onClose}
-        className="absolute top-2 right-2 text-gray-400 hover:text-white"
-      >
-        ×
-      </button>
-      <h3 className="text-lg font-semibold mb-4">Add Your Site</h3>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm mb-1">Site Name *</label>
-          <input
-            type="text"
-            required
-            className="w-full px-2 py-1 bg-gray-800 rounded"
-            value={formData.siteName}
-            onChange={e => setFormData(prev => ({ ...prev, siteName: e.target.value }))}
-          />
+    <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
+      <div className="bg-black/90 text-white p-6 rounded-lg shadow-lg w-96 max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">Add Your Site</h3>
+          <button 
+            onClick={onClose}
+            className="text-gray-400 hover:text-white"
+          >
+            ×
+          </button>
         </div>
-        <div>
-          <label className="block text-sm mb-1">Site URL *</label>
-          <input
-            type="url"
-            required
-            className="w-full px-2 py-1 bg-gray-800 rounded"
-            value={formData.website}
-            onChange={e => setFormData(prev => ({ ...prev, website: e.target.value }))}
-          />
-        </div>
-        <div>
-          <label className="block text-sm mb-1">Site Description</label>
-          <textarea
-            className="w-full px-2 py-1 bg-gray-800 rounded"
-            value={formData.siteDescription}
-            onChange={e => setFormData(prev => ({ ...prev, siteDescription: e.target.value }))}
-          />
-        </div>
-        <div className="flex items-center mb-4">
-          <input
-            type="checkbox"
-            id="anonymous"
-            className="mr-2"
-            checked={formData.isAnonymous}
-            onChange={e => setFormData(prev => ({ ...prev, isAnonymous: e.target.checked }))}
-          />
-          <label htmlFor="anonymous" className="text-sm">Stay Anonymous</label>
-        </div>
-        {!formData.isAnonymous && (
-          <>
-            <div>
-              <label className="block text-sm mb-1">Owner Name</label>
-              <input
-                type="text"
-                className="w-full px-2 py-1 bg-gray-800 rounded"
-                value={formData.ownerName}
-                onChange={e => setFormData(prev => ({ ...prev, ownerName: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="block text-sm mb-1">Owner Description</label>
-              <textarea
-                className="w-full px-2 py-1 bg-gray-800 rounded"
-                value={formData.ownerDescription}
-                onChange={e => setFormData(prev => ({ ...prev, ownerDescription: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="block text-sm mb-1">Owner Website</label>
-              <input
-                type="url"
-                className="w-full px-2 py-1 bg-gray-800 rounded"
-                value={formData.ownerWebsite}
-                onChange={e => setFormData(prev => ({ ...prev, ownerWebsite: e.target.value }))}
-              />
-            </div>
-          </>
-        )}
-        <button
-          type="submit"
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded"
-        >
-          Add Site
-        </button>
-      </form>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm mb-1">Site Name *</label>
+            <input
+              type="text"
+              required
+              className="w-full px-3 py-2 bg-gray-800 rounded"
+              value={formData.siteName}
+              onChange={e => setFormData(prev => ({ ...prev, siteName: e.target.value }))}
+            />
+          </div>
+          <div>
+            <label className="block text-sm mb-1">Site URL *</label>
+            <input
+              type="url"
+              required
+              className="w-full px-3 py-2 bg-gray-800 rounded"
+              value={formData.website}
+              onChange={e => setFormData(prev => ({ ...prev, website: e.target.value }))}
+            />
+          </div>
+          <div>
+            <label className="block text-sm mb-1">Site Description</label>
+            <textarea
+              className="w-full px-3 py-2 bg-gray-800 rounded"
+              value={formData.siteDescription}
+              onChange={e => setFormData(prev => ({ ...prev, siteDescription: e.target.value }))}
+            />
+          </div>
+          <div className="flex items-center mb-4">
+            <input
+              type="checkbox"
+              id="anonymous"
+              className="mr-2"
+              checked={formData.isAnonymous}
+              onChange={e => setFormData(prev => ({ ...prev, isAnonymous: e.target.checked }))}
+            />
+            <label htmlFor="anonymous" className="text-sm">Stay Anonymous</label>
+          </div>
+          {!formData.isAnonymous && (
+            <>
+              <div>
+                <label className="block text-sm mb-1">Owner Name</label>
+                <input
+                  type="text"
+                  className="w-full px-3 py-2 bg-gray-800 rounded"
+                  value={formData.ownerName}
+                  onChange={e => setFormData(prev => ({ ...prev, ownerName: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block text-sm mb-1">Owner Description</label>
+                <textarea
+                  className="w-full px-3 py-2 bg-gray-800 rounded"
+                  value={formData.ownerDescription}
+                  onChange={e => setFormData(prev => ({ ...prev, ownerDescription: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block text-sm mb-1">Owner Website</label>
+                <input
+                  type="url"
+                  className="w-full px-3 py-2 bg-gray-800 rounded"
+                  value={formData.ownerWebsite}
+                  onChange={e => setFormData(prev => ({ ...prev, ownerWebsite: e.target.value }))}
+                />
+              </div>
+            </>
+          )}
+          <button
+            type="submit"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded"
+          >
+            Add Site
+          </button>
+        </form>
+      </div>
     </div>
   )
 }
@@ -137,8 +190,10 @@ export default function Map() {
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<mapboxgl.Map | null>(null)
   const [markers, setMarkers] = useState<Marker[]>([])
+  const [showContextMenu, setShowContextMenu] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [selectedPosition, setSelectedPosition] = useState<mapboxgl.LngLat | null>(null)
+  const [contextMenuPos, setContextMenuPos] = useState({ x: 0, y: 0 })
   
   const loadMarkers = async () => {
     try {
@@ -228,17 +283,23 @@ export default function Map() {
     
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/dark-v11', // Changed to a simpler style without traffic
+      style: 'mapbox://styles/mapbox/dark-v11',
       center: [0, 0],
       zoom: 1.5,
-      maxPitch: 0, // Disable 3D buildings
+      maxPitch: 0,
       dragRotate: false,
       touchZoomRotate: false
     })
 
     map.current.on('click', (e) => {
+      // Close any existing menus
+      setShowContextMenu(false)
+      setShowForm(false)
+      
+      // Show context menu at click position
+      setContextMenuPos({ x: e.point.x, y: e.point.y })
       setSelectedPosition(e.lngLat)
-      setShowForm(true)
+      setShowContextMenu(true)
     })
 
     loadMarkers()
@@ -249,17 +310,26 @@ export default function Map() {
   return (
     <div className="relative w-full h-screen">
       <div ref={mapContainer} className="w-full h-full" />
+      {showContextMenu && (
+        <ContextMenu
+          x={contextMenuPos.x}
+          y={contextMenuPos.y}
+          onAddSite={() => {
+            setShowContextMenu(false)
+            setShowForm(true)
+          }}
+          onClose={() => setShowContextMenu(false)}
+        />
+      )}
       {showForm && selectedPosition && (
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-          <AddSiteForm
-            position={selectedPosition}
-            onSubmit={(data) => {
-              addNewMarker(selectedPosition, data)
-              setShowForm(false)
-            }}
-            onClose={() => setShowForm(false)}
-          />
-        </div>
+        <AddSiteForm
+          position={selectedPosition}
+          onSubmit={(data) => {
+            addNewMarker(selectedPosition, data)
+            setShowForm(false)
+          }}
+          onClose={() => setShowForm(false)}
+        />
       )}
     </div>
   )
