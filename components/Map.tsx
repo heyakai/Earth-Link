@@ -13,10 +13,10 @@ interface Marker {
   latitude: number
   website: string
   siteName: string
-  siteDescription: string
-  ownerName: string
-  ownerDescription: string
-  ownerWebsite: string
+  siteDescription?: string
+  ownerName?: string
+  ownerDescription?: string
+  ownerWebsite?: string
   isAnonymous: boolean
   created_at?: string
 }
@@ -86,11 +86,17 @@ function AddSiteForm({ position, onSubmit, onClose }: AddSiteFormProps) {
     ownerWebsite: '',
     isAnonymous: false
   })
+  const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    onSubmit(formData)
-    onClose()
+    setError(null)
+    try {
+      await onSubmit(formData)
+      onClose()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to add marker')
+    }
   }
 
   return (
@@ -105,6 +111,11 @@ function AddSiteForm({ position, onSubmit, onClose }: AddSiteFormProps) {
             ×
           </button>
         </div>
+        {error && (
+          <div className="bg-red-500/20 border border-red-500 text-red-100 px-4 py-2 rounded mb-4">
+            {error}
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm mb-1">Site Name *</label>
@@ -244,7 +255,10 @@ export default function Map() {
         }),
       })
 
-      if (!response.ok) throw new Error('Failed to add marker')
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to add marker');
+      }
       
       const newMarker = new mapboxgl.Marker()
         .setLngLat([lngLat.lng, lngLat.lat])
@@ -256,7 +270,7 @@ export default function Map() {
                class="text-blue-400 hover:text-blue-300 block mb-2">Visit Website</a>
             ${!markerData.isAnonymous ? `
               <div class="border-t pt-2 mt-2">
-                <p class="font-semibold">${markerData.ownerName}</p>
+                <p class="font-semibold">${markerData.ownerName || ''}</p>
                 <p class="text-sm">${markerData.ownerDescription || ''}</p>
                 ${markerData.ownerWebsite ? `
                   <a href="${markerData.ownerWebsite}" target="_blank" rel="noopener noreferrer" 
@@ -275,36 +289,57 @@ export default function Map() {
       } as Marker])
     } catch (error) {
       console.error('Failed to add marker:', error)
+      throw error; // Re-throw to handle in the form submission
     }
   }
   
   useEffect(() => {
-    if (!mapContainer.current) return
+    if (!mapContainer.current) {
+      console.error('Map container not found')
+      return
+    }
     
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/dark-v11',
-      center: [0, 0],
-      zoom: 1.5,
-      maxPitch: 0,
-      dragRotate: false,
-      touchZoomRotate: false
-    })
+    try {
+      if (!mapboxgl.accessToken) {
+        console.error('Mapbox token not found')
+        return
+      }
 
-    map.current.on('click', (e) => {
-      // Close any existing menus
-      setShowContextMenu(false)
-      setShowForm(false)
-      
-      // Show context menu at click position
-      setContextMenuPos({ x: e.point.x, y: e.point.y })
-      setSelectedPosition(e.lngLat)
-      setShowContextMenu(true)
-    })
+      map.current = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/dark-v11',
+        center: [0, 0],
+        zoom: 1.5,
+        maxPitch: 0,
+        dragRotate: false,
+        touchZoomRotate: false
+      })
 
-    loadMarkers()
+      // Wait for map to load before adding markers
+      map.current.on('load', () => {
+        console.log('Map loaded successfully')
+        loadMarkers()
+      })
 
-    return () => map.current?.remove()
+      map.current.on('error', (e) => {
+        console.error('Map error:', e)
+      })
+
+      map.current.on('click', (e) => {
+        // Close any existing menus
+        setShowContextMenu(false)
+        setShowForm(false)
+        
+        // Show context menu at click position
+        setContextMenuPos({ x: e.point.x, y: e.point.y })
+        setSelectedPosition(e.lngLat)
+        setShowContextMenu(true)
+      })
+
+      return () => map.current?.remove()
+    } catch (error) {
+      console.error('Error initializing map:', error)
+    }
   }, [])
 
   return (

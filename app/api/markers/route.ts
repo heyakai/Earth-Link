@@ -76,11 +76,20 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = addMarker(data);
-    return NextResponse.json(result);
+    try {
+      const result = addMarker(data);
+      return NextResponse.json(result);
+    } catch (dbError) {
+      console.error('Database error:', dbError);
+      return NextResponse.json(
+        { error: 'Database error: ' + (dbError instanceof Error ? dbError.message : 'Unknown error') },
+        { status: 500 }
+      );
+    }
   } catch (error) {
+    console.error('Server error:', error);
     return NextResponse.json(
-      { error: 'Failed to add marker' },
+      { error: 'Server error: ' + (error instanceof Error ? error.message : 'Unknown error') },
       { status: 500 }
     );
   }
