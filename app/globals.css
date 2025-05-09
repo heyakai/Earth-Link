@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 0, 0, 0;
+  --background-end-rgb: 0, 0, 0;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+}
+
+/* Override Mapbox popup styles for dark theme */
+.mapboxgl-popup-content {
+  background-color: #1a1a1a !important;
+  color: white !important;
+  padding: 1rem !important;
+  border-radius: 0.5rem !important;
+}
+
+.mapboxgl-popup-tip {
+  border-top-color: #1a1a1a !important;
+}
+
+.mapboxgl-popup-close-button {
+  color: white !important;
+}
+
+/* Custom marker styles */
+.mapboxgl-marker {
+  cursor: pointer;
+} 
