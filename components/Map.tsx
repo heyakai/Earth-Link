@@ -205,6 +205,8 @@ export default function Map() {
   const [showForm, setShowForm] = useState(false)
   const [selectedPosition, setSelectedPosition] = useState<mapboxgl.LngLat | null>(null)
   const [contextMenuPos, setContextMenuPos] = useState({ x: 0, y: 0 })
+  const [isLoading, setIsLoading] = useState(true)
+  const markersRef = useRef<mapboxgl.Marker[]>([])
   
   const loadMarkers = async () => {
     try {
@@ -212,9 +214,13 @@ export default function Map() {
       const data = await response.json()
       setMarkers(data)
       
+      // Clear existing markers
+      markersRef.current.forEach(marker => marker.remove())
+      markersRef.current = []
+      
       // Add markers to the map
       data.forEach((marker: Marker) => {
-        new mapboxgl.Marker()
+        const newMarker = new mapboxgl.Marker()
           .setLngLat([marker.longitude, marker.latitude])
           .setPopup(new mapboxgl.Popup().setHTML(`
             <div class="p-3">
@@ -224,7 +230,7 @@ export default function Map() {
                  class="text-blue-400 hover:text-blue-300 block mb-2">Visit Website</a>
               ${!marker.isAnonymous ? `
                 <div class="border-t pt-2 mt-2">
-                  <p class="font-semibold">${marker.ownerName}</p>
+                  <p class="font-semibold">${marker.ownerName || ''}</p>
                   <p class="text-sm">${marker.ownerDescription || ''}</p>
                   ${marker.ownerWebsite ? `
                     <a href="${marker.ownerWebsite}" target="_blank" rel="noopener noreferrer" 
@@ -235,9 +241,12 @@ export default function Map() {
             </div>
           `))
           .addTo(map.current!)
+        markersRef.current.push(newMarker)
       })
     } catch (error) {
       console.error('Failed to load markers:', error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -325,18 +334,26 @@ export default function Map() {
         console.error('Map error:', e)
       })
 
-      map.current.on('click', (e) => {
-        // Close any existing menus
+      // Handle right click for context menu
+      map.current.on('contextmenu', (e) => {
+        e.preventDefault()
         setShowContextMenu(false)
         setShowForm(false)
         
-        // Show context menu at click position
         setContextMenuPos({ x: e.point.x, y: e.point.y })
         setSelectedPosition(e.lngLat)
         setShowContextMenu(true)
       })
 
-      return () => map.current?.remove()
+      // Handle left click for marker popups and menu closing
+      map.current.on('click', () => {
+        setShowContextMenu(false)
+      })
+
+      return () => {
+        markersRef.current.forEach(marker => marker.remove())
+        map.current?.remove()
+      }
     } catch (error) {
       console.error('Error initializing map:', error)
     }
@@ -359,8 +376,13 @@ export default function Map() {
       {showForm && selectedPosition && (
         <AddSiteForm
           position={selectedPosition}
-          onSubmit={(data) => {
-            addNewMarker(selectedPosition, data)
+          onSubmit={async (data) => {
+            try {
+              await addNewMarker(selectedPosition, data)
+              await loadMarkers() // Reload markers after adding new one
+            } catch (error) {
+              console.error('Error adding marker:', error)
+            }
             setShowForm(false)
           }}
           onClose={() => setShowForm(false)}
