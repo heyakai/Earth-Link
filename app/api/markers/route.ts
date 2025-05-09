@@ -12,16 +12,71 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const { latitude, longitude, website } = await request.json();
+    const data = await request.json();
     
-    if (!latitude || !longitude || !website) {
+    // Validate required fields
+    const requiredFields = ['latitude', 'longitude', 'website', 'siteName'];
+    const missingFields = requiredFields.filter(field => !data[field]);
+    
+    if (missingFields.length > 0) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: `Missing required fields: ${missingFields.join(', ')}` },
         { status: 400 }
       );
     }
 
-    const result = addMarker(latitude, longitude, website);
+    // Validate data types
+    if (typeof data.latitude !== 'number' || typeof data.longitude !== 'number') {
+      return NextResponse.json(
+        { error: 'Latitude and longitude must be numbers' },
+        { status: 400 }
+      );
+    }
+
+    if (typeof data.website !== 'string' || typeof data.siteName !== 'string') {
+      return NextResponse.json(
+        { error: 'Website and site name must be strings' },
+        { status: 400 }
+      );
+    }
+
+    // Optional fields validation
+    if (data.siteDescription && typeof data.siteDescription !== 'string') {
+      return NextResponse.json(
+        { error: 'Site description must be a string' },
+        { status: 400 }
+      );
+    }
+
+    if (data.ownerName && typeof data.ownerName !== 'string') {
+      return NextResponse.json(
+        { error: 'Owner name must be a string' },
+        { status: 400 }
+      );
+    }
+
+    if (data.ownerDescription && typeof data.ownerDescription !== 'string') {
+      return NextResponse.json(
+        { error: 'Owner description must be a string' },
+        { status: 400 }
+      );
+    }
+
+    if (data.ownerWebsite && typeof data.ownerWebsite !== 'string') {
+      return NextResponse.json(
+        { error: 'Owner website must be a string' },
+        { status: 400 }
+      );
+    }
+
+    if (data.isAnonymous && typeof data.isAnonymous !== 'boolean') {
+      return NextResponse.json(
+        { error: 'isAnonymous must be a boolean' },
+        { status: 400 }
+      );
+    }
+
+    const result = addMarker(data);
     return NextResponse.json(result);
   } catch (error) {
     return NextResponse.json(
