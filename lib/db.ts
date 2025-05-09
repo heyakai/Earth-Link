@@ -19,7 +19,6 @@ interface MarkerRecord {
 
 // Create markers table if it doesn't exist
 db.exec(`
-  DROP TABLE IF EXISTS markers;
   CREATE TABLE IF NOT EXISTS markers (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     latitude REAL NOT NULL,
