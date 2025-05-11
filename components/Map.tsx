@@ -248,6 +248,7 @@ export default function Map() {
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const [projection, setProjection] = useState<"globe" | "mercator">(mapConfig.defaultProjection);
   const [atmosphereStyle, setAtmosphereStyle] = useState<string>("night");
+  const geolocateControlRef = useRef<mapboxgl.GeolocateControl | null>(null);
 
   const loadMarkers = async () => {
     try {
@@ -436,6 +437,24 @@ export default function Map() {
     }
   };
 
+  const handleLocateUser = () => {
+    if (geolocateControlRef.current) {
+      geolocateControlRef.current.trigger();
+    }
+  };
+
+  const handleResetView = () => {
+    if (map.current) {
+      map.current.easeTo({
+        center: mapConfig.initialView.center,
+        zoom: mapConfig.initialView.zoom,
+        pitch: 0,
+        bearing: 0,
+        duration: 1000
+      });
+    }
+  };
+
   useEffect(() => {
     if (!mapContainer.current) {
       console.error("Map container not found");
@@ -459,6 +478,17 @@ export default function Map() {
         projection: projection,
         attributionControl: mapConfig.initialView.attributionControl,
       });
+
+      // Add geolocate control
+      geolocateControlRef.current = new mapboxgl.GeolocateControl({
+        positionOptions: {
+          enableHighAccuracy: true
+        },
+        trackUserLocation: true,
+        showUserHeading: true,
+        showUserLocation: true
+      });
+      map.current.addControl(geolocateControlRef.current);
 
       // Wait for map to load before adding markers
       map.current.on("load", () => {
@@ -535,6 +565,8 @@ export default function Map() {
         atmosphereStyle={atmosphereStyle}
         onProjectionToggle={toggleProjection}
         onAtmosphereChange={changeAtmosphereStyle}
+        onLocateUser={handleLocateUser}
+        onResetView={handleResetView}
       />
 
       {showContextMenu && (
