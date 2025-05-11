@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { 
   baseFogSettings, 
-  getDynamicFogSettings, 
   mapConfig, 
   atmospherePresets,
   FogSettings
@@ -238,6 +237,7 @@ function AddSiteForm({ position, onSubmit, onClose }: AddSiteFormProps) {
 export default function Map() {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
   const [markers, setMarkers] = useState<Marker[]>([]);
   const [showContextMenu, setShowContextMenu] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -248,6 +248,7 @@ export default function Map() {
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const [projection, setProjection] = useState<"globe" | "mercator">(mapConfig.defaultProjection);
   const [atmosphereStyle, setAtmosphereStyle] = useState<string>("default");
+  const [dynamicFog, setDynamicFog] = useState(true);
 
   const loadMarkers = async () => {
     try {
@@ -369,6 +370,25 @@ export default function Map() {
     }
   };
 
+  const changeAtmosphereStyle = (style: string) => {
+    if (!map.current || projection !== "globe") return;
+    setAtmosphereStyle(style);
+    const styleKey = style as keyof typeof atmospherePresets;
+    const selectedStyle = atmospherePresets[styleKey] || atmospherePresets.default;
+    if (map.current.isStyleLoaded()) {
+      map.current.setFog(selectedStyle);
+    } else {
+      const checkAndApply = () => {
+        if (map.current && map.current.isStyleLoaded()) {
+          map.current.setFog(selectedStyle);
+        } else {
+          setTimeout(checkAndApply, 100);
+        }
+      };
+      checkAndApply();
+    }
+  };
+
   const toggleProjection = () => {
     if (!map.current) return;
 
@@ -376,28 +396,44 @@ export default function Map() {
     map.current.setProjection(newProjection);
     setProjection(newProjection);
 
-    // If switching to globe, add the atmosphere styling
+    // If switching to globe, apply the current atmosphere style
     if (newProjection === "globe") {
-      const currentStyle = atmospherePresets[atmosphereStyle as keyof typeof atmospherePresets];
-      map.current.setFog(currentStyle);
+      // Wait for the projection change to take effect before applying fog
+      setTimeout(() => {
+        // Re-apply the current atmosphere style
+        const styleKey = atmosphereStyle as keyof typeof atmospherePresets;
+        const selectedStyle = atmospherePresets[styleKey] || atmospherePresets.default;
+        const currentZoom = map.current?.getZoom() || mapConfig.initialView.zoom;
+        const dynamicSettings = selectedStyle;
+        
+        if (map.current?.isStyleLoaded()) {
+          map.current.setFog(dynamicSettings);
+        } else {
+          const checkAndApply = () => {
+            if (map.current && map.current.isStyleLoaded()) {
+              map.current.setFog(dynamicSettings);
+            } else {
+              setTimeout(checkAndApply, 100);
+            }
+          };
+          checkAndApply();
+        }
+      }, 50);
     } else {
       // Remove fog/atmosphere when in mercator mode
-      map.current.setFog(null);
-    }
-  };
-
-  const changeAtmosphereStyle = (style: string) => {
-    if (!map.current || projection !== "globe") return;
-    
-    setAtmosphereStyle(style);
-    const selectedStyle = atmospherePresets[style as keyof typeof atmospherePresets];
-    
-    if (map.current.getZoom) {
-      const currentZoom = map.current.getZoom();
-      const dynamicSettings = getDynamicFogSettings(currentZoom, selectedStyle);
-      map.current.setFog(dynamicSettings);
-    } else {
-      map.current.setFog(selectedStyle);
+      // Even for removing fog, we should wait for style to be ready
+      if (map.current.isStyleLoaded()) {
+        map.current.setFog(null);
+      } else {
+        const waitAndRemoveFog = () => {
+          if (map.current && map.current.isStyleLoaded()) {
+            map.current.setFog(null);
+          } else {
+            setTimeout(waitAndRemoveFog, 100);
+          }
+        };
+        waitAndRemoveFog();
+      }
     }
   };
 
@@ -428,21 +464,18 @@ export default function Map() {
       // Wait for map to load before adding markers
       map.current.on("load", () => {
         console.log("Map loaded successfully");
+        mapRef.current = map.current;
 
-        // Add custom atmosphere styling
-        if (projection === "globe") {
-          const currentStyle = atmospherePresets[atmosphereStyle as keyof typeof atmospherePresets];
-          map.current?.setFog(currentStyle);
-        }
-
-        // Add zoom-dependent atmosphere styling
-        map.current?.on("zoom", () => {
-          if (!map.current || projection !== "globe") return;
-
-          const currentZoom = map.current.getZoom();
-          const currentStyle = atmospherePresets[atmosphereStyle as keyof typeof atmospherePresets];
-          const dynamicFogSettings = getDynamicFogSettings(currentZoom, currentStyle);
-          map.current.setFog(dynamicFogSettings);
+        // Set up a handler for style.load to ensure the style is fully loaded
+        map.current?.on("style.load", () => {
+          console.log("Map style loaded successfully");
+          
+          // Add custom atmosphere styling
+          if (projection === "globe") {
+            const styleKey = atmosphereStyle as keyof typeof atmospherePresets;
+            const selectedStyle = atmospherePresets[styleKey] || atmospherePresets.default;
+            map.current?.setFog(selectedStyle);
+          }
         });
 
         loadMarkers();
@@ -477,6 +510,15 @@ export default function Map() {
     }
   }, []);
 
+  // Handle atmosphere style changes
+  useEffect(() => {
+    if (map.current && projection === "globe" && map.current.isStyleLoaded()) {
+      const styleKey = atmosphereStyle as keyof typeof atmospherePresets;
+      const selectedStyle = atmospherePresets[styleKey] || atmospherePresets.default;
+      map.current.setFog(selectedStyle);
+    }
+  }, [atmosphereStyle, projection]);
+
   return (
     <div className="relative w-full h-screen">
       <div ref={mapContainer} className="w-full h-full" />
@@ -485,8 +527,10 @@ export default function Map() {
       <MapControls
         projection={projection}
         atmosphereStyle={atmosphereStyle}
+        dynamicFog={dynamicFog}
         onProjectionToggle={toggleProjection}
         onAtmosphereChange={changeAtmosphereStyle}
+        onDynamicFogToggle={() => setDynamicFog(!dynamicFog)}
       />
 
       {showContextMenu && (
