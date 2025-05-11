@@ -19,66 +19,72 @@ export default function MapControls({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
-    <div className="absolute top-4 right-4 z-10">
-      {/* Menu Button */}
+    <>
+      {/* Menu Button - Fixed position */}
       <button
         onClick={() => setIsMenuOpen(!isMenuOpen)}
-        className="bg-black/70 hover:bg-black/90 text-white p-2 rounded-lg mb-2 transition-transform duration-300"
+        className="fixed top-4 right-4 z-20 bg-black/70 hover:bg-black/90 text-white rounded-lg transition-all duration-300 w-10 h-10 flex items-center justify-center"
         style={{
           transform: isMenuOpen ? 'rotate(90deg)' : 'rotate(0deg)'
         }}
       >
         <div className="flex flex-col gap-1">
-          <div className={`w-6 h-0.5 bg-white transition-all duration-300 ${isMenuOpen ? 'rotate-45 translate-y-1.5' : ''}`}></div>
-          <div className={`w-6 h-0.5 bg-white transition-all duration-300 ${isMenuOpen ? 'opacity-0' : ''}`}></div>
-          <div className={`w-6 h-0.5 bg-white transition-all duration-300 ${isMenuOpen ? '-rotate-45 -translate-y-1.5' : ''}`}></div>
+          <div className={`w-5 h-0.5 bg-white transition-all duration-300 ${isMenuOpen ? 'rotate-45 translate-y-1.5' : ''}`}></div>
+          <div className={`w-5 h-0.5 bg-white transition-all duration-300 ${isMenuOpen ? 'opacity-0' : ''}`}></div>
+          <div className={`w-5 h-0.5 bg-white transition-all duration-300 ${isMenuOpen ? '-rotate-45 -translate-y-1.5' : ''}`}></div>
         </div>
       </button>
 
-      {/* Dropdown Menu */}
+      {/* Dropdown Menu - Fixed position */}
       <div 
-        className={`bg-black/70 p-4 rounded-lg transition-all duration-300 ease-in-out ${
+        className={`fixed top-4 right-4 z-10 bg-black/70 rounded-lg transition-all duration-300 ease-in-out ${
           isMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'
         }`}
+        style={{
+          marginTop: '3.5rem', // Space for the menu button
+          minWidth: '200px'
+        }}
       >
-        {/* Projection Toggle Switch */}
-        <div className="flex items-center justify-between mb-4">
-          <span className="text-white text-sm">Globe View</span>
-          <button
-            onClick={onProjectionToggle}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-              projection === "globe" ? "bg-blue-600" : "bg-gray-600"
-            }`}
-          >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                projection === "globe" ? "translate-x-6" : "translate-x-1"
+        <div className="p-4">
+          {/* Projection Toggle Switch */}
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-white text-sm mr-4">Globe View</span>
+            <button
+              onClick={onProjectionToggle}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                projection === "globe" ? "bg-blue-600" : "bg-gray-600"
               }`}
-            />
-          </button>
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  projection === "globe" ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
+            </button>
+          </div>
+          
+          {projection === "globe" && (
+            <>
+              <p className="text-white text-sm mb-2">Atmosphere Style</p>
+              <div className="grid grid-cols-2 gap-1">
+                {Object.keys(atmospherePresets).map((style) => (
+                  <button
+                    key={style}
+                    onClick={() => onAtmosphereChange(style)}
+                    className={`text-white text-sm px-2 py-1 rounded transition-all duration-300 ${
+                      atmosphereStyle === style 
+                        ? "bg-blue-600" 
+                        : "bg-gray-800 hover:bg-gray-700"
+                    }`}
+                  >
+                    {style.charAt(0).toUpperCase() + style.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
-        
-        {projection === "globe" && (
-          <>
-            <p className="text-white text-sm mb-2">Atmosphere Style</p>
-            <div className="grid grid-cols-2 gap-1">
-              {Object.keys(atmospherePresets).map((style) => (
-                <button
-                  key={style}
-                  onClick={() => onAtmosphereChange(style)}
-                  className={`text-white text-sm px-2 py-1 rounded ${
-                    atmosphereStyle === style 
-                      ? "bg-blue-600" 
-                      : "bg-gray-800 hover:bg-gray-700"
-                  }`}
-                >
-                  {style.charAt(0).toUpperCase() + style.slice(1)}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
       </div>
-    </div>
+    </>
   );
 }
