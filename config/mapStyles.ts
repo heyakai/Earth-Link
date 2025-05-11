@@ -25,20 +25,26 @@ export const baseFogSettings: FogSettings = {
 
 // Alternative atmosphere presets
 export const atmospherePresets = {
-  default: baseFogSettings,
-  sunrise: {
-    color: "#ffeecc",
-    "high-color": "rgb(255, 150, 50)",
-    "horizon-blend": 0.2,
-    "space-color": "rgb(13, 13, 30)",
-    "star-intensity": 0.08,
-  } as FogSettings,
   night: {
     color: "#333333",
     "high-color": "rgb(10, 30, 60)",
     "horizon-blend": 0.1,
     "space-color": "rgb(5, 5, 15)",
     "star-intensity": 0.8,
+  } as FogSettings,
+  light: {
+    color: "#ffffff", // Lower atmosphere
+    "high-color": "rgb(36, 92, 223)", // Upper atmosphere
+    "horizon-blend": 0.2, // Atmosphere thickness (0 to 1)
+    "space-color": "rgb(13, 13, 17)", // Background/space color
+    "star-intensity": 0.3, // Background star brightness (0 to 1)
+  } as FogSettings,
+  sunrise: {
+    color: "#ffeecc",
+    "high-color": "rgb(255, 150, 50)",
+    "horizon-blend": 0.2,
+    "space-color": "rgb(13, 13, 30)",
+    "star-intensity": 0.08,
   } as FogSettings,
   scifi: {
     color: "#22aaff",
