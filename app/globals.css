@@ -37,4 +37,9 @@ body {
 /* Custom marker styles */
 .mapboxgl-marker {
   cursor: pointer;
+}
+
+/* Hide default Mapbox locate control */
+.mapboxgl-ctrl-geolocate {
+  display: none !important;
 } 

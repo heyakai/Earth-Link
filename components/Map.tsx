@@ -249,6 +249,7 @@ export default function Map() {
   const [projection, setProjection] = useState<"globe" | "mercator">(mapConfig.defaultProjection);
   const [atmosphereStyle, setAtmosphereStyle] = useState<string>("night");
   const geolocateControlRef = useRef<mapboxgl.GeolocateControl | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
 
   const loadMarkers = async () => {
     try {
@@ -486,9 +487,22 @@ export default function Map() {
         },
         trackUserLocation: true,
         showUserHeading: true,
-        showUserLocation: true
+        showUserLocation: true,
+        showAccuracyCircle: true,
+        fitBoundsOptions: {
+          maxZoom: 15
+        }
       });
-      map.current.addControl(geolocateControlRef.current);
+      map.current.addControl(geolocateControlRef.current, 'top-right');
+
+      // Add event listeners for geolocate control
+      map.current.on('geolocate', () => {
+        setIsLocating(true);
+      });
+
+      map.current.on('geolocateend', () => {
+        setIsLocating(false);
+      });
 
       // Wait for map to load before adding markers
       map.current.on("load", () => {
@@ -567,6 +581,7 @@ export default function Map() {
         onAtmosphereChange={changeAtmosphereStyle}
         onLocateUser={handleLocateUser}
         onResetView={handleResetView}
+        isLocating={isLocating}
       />
 
       {showContextMenu && (

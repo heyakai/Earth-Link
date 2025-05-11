@@ -10,6 +10,7 @@ interface MapControlsProps {
   onAtmosphereChange: (style: string) => void;
   onLocateUser: () => void;
   onResetView: () => void;
+  isLocating: boolean;
 }
 
 export default function MapControls({
@@ -19,6 +20,7 @@ export default function MapControls({
   onAtmosphereChange,
   onLocateUser,
   onResetView,
+  isLocating,
 }: MapControlsProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -103,11 +105,15 @@ export default function MapControls({
         </button>
         <button
           onClick={onLocateUser}
-          className="bg-black/70 hover:bg-black/90 text-white rounded-lg transition-all duration-300 w-10 h-10 flex items-center justify-center"
+          className={`rounded-lg transition-all duration-300 w-10 h-10 flex items-center justify-center ${
+            isLocating 
+              ? "bg-blue-600 hover:bg-blue-700" 
+              : "bg-black/70 hover:bg-black/90"
+          }`}
           title="Locate Me"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+            <path fillRule="evenodd" d="M10 2a8 8 0 100 16 8 8 0 000-16zm0 14a6 6 0 100-12 6 6 0 000 12zm0-8a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
           </svg>
         </button>
       </div>
