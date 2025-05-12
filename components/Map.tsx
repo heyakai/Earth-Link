@@ -10,6 +10,17 @@ import {
   FogSettings
 } from "../config/mapStyles";
 import MapControls from "./MapControls";
+import {
+  Box,
+  Button,
+  Input,
+  Textarea,
+  VStack,
+  HStack,
+  Text,
+  useDisclosure,
+} from '@chakra-ui/react'
+import type { ChangeEvent } from 'react'
 
 // You'll need to replace this with your Mapbox token
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
@@ -53,27 +64,38 @@ function ContextMenu({ x, y, onAddSite, onClose }: ContextMenuProps) {
   const adjustedX = x + 200 > window.innerWidth ? x - 150 : x;
 
   return (
-    <div
-      ref={menuRef}
-      className="absolute z-50 bg-black/90 rounded-lg shadow-lg w-40 py-2"
-      style={{
-        top: `${adjustedY}px`,
-        left: `${adjustedX}px`,
-      }}
+    <Box
+      position="absolute"
+      zIndex={50}
+      bg="blackAlpha.900"
+      borderRadius="lg"
+      shadow="lg"
+      w="160px"
+      py={2}
     >
-      <button
-        className="w-full px-4 py-2 text-white hover:bg-blue-600 text-left"
+      <Button
+        w="full"
+        px={4}
+        py={2}
+        color="white"
+        _hover={{ bg: 'blue.600' }}
+        textAlign="left"
         onClick={onAddSite}
       >
-        Put my site here
-      </button>
-      <button
-        className="w-full px-4 py-2 text-white hover:bg-blue-600 text-left"
+        Add Site
+      </Button>
+      <Button
+        w="full"
+        px={4}
+        py={2}
+        color="white"
+        _hover={{ bg: 'blue.600' }}
+        textAlign="left"
         onClick={onClose}
       >
         Cancel
-      </button>
-    </div>
+      </Button>
+    </Box>
   );
 }
 
@@ -109,128 +131,123 @@ function AddSiteForm({ position, onSubmit, onClose }: AddSiteFormProps) {
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-      <div className="bg-black/90 text-white p-6 rounded-lg shadow-lg w-96 max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">Add Your Site</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
+    <Box
+      position="fixed"
+      inset={0}
+      display="flex"
+      alignItems="center"
+      justifyContent="center"
+      bg="blackAlpha.500"
+      zIndex={50}
+    >
+      <Box
+        bg="blackAlpha.900"
+        color="white"
+        p={6}
+        borderRadius="lg"
+        shadow="lg"
+        w="96"
+        maxH="90vh"
+        overflowY="auto"
+      >
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
+          <Text fontSize="lg" fontWeight="semibold">Add Your Site</Text>
+          <Button onClick={onClose} color="gray.400" _hover={{ color: 'white' }}>
             ×
-          </button>
-        </div>
+          </Button>
+        </Box>
         {error && (
-          <div className="bg-red-500/20 border border-red-500 text-red-100 px-4 py-2 rounded mb-4">
+          <Box bg="red.500" opacity={0.2} border="1px" borderColor="red.500" color="red.100" px={4} py={2} borderRadius="md" mb={4}>
             {error}
-          </div>
+          </Box>
         )}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm mb-1">Site Name *</label>
-            <input
+        <VStack as="form" onSubmit={handleSubmit} gap={4}>
+          <Box>
+            <Text as="label" display="block" fontSize="sm" mb={1}>Site Name *</Text>
+            <Input
               type="text"
               required
-              className="w-full px-3 py-2 bg-gray-800 rounded"
+              bg="gray.800"
               value={formData.siteName}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, siteName: e.target.value }))
-              }
+              onChange={(e) => setFormData({ ...formData, siteName: e.target.value })}
             />
-          </div>
-          <div>
-            <label className="block text-sm mb-1">Site URL *</label>
-            <input
+          </Box>
+          
+          <Box>
+            <Text as="label" display="block" fontSize="sm" mb={1}>Site URL *</Text>
+            <Input
               type="url"
               required
-              className="w-full px-3 py-2 bg-gray-800 rounded"
+              bg="gray.800"
               value={formData.website}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, website: e.target.value }))
-              }
+              onChange={(e) => setFormData({ ...formData, website: e.target.value })}
             />
-          </div>
-          <div>
-            <label className="block text-sm mb-1">Site Description</label>
-            <textarea
-              className="w-full px-3 py-2 bg-gray-800 rounded"
+          </Box>
+
+          <Box>
+            <Text as="label" display="block" fontSize="sm" mb={1}>Site Description</Text>
+            <Textarea
+              bg="gray.800"
               value={formData.siteDescription}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  siteDescription: e.target.value,
-                }))
-              }
+              onChange={(e) => setFormData({ ...formData, siteDescription: e.target.value })}
             />
-          </div>
-          <div className="flex items-center mb-4">
+          </Box>
+
+          <HStack>
             <input
               type="checkbox"
               id="anonymous"
-              className="mr-2"
               checked={formData.isAnonymous}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  isAnonymous: e.target.checked,
-                }))
-              }
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, isAnonymous: e.target.checked })}
             />
-            <label htmlFor="anonymous" className="text-sm">
-              Stay Anonymous
-            </label>
-          </div>
+            <Text fontSize="sm">Stay Anonymous</Text>
+          </HStack>
+
           {!formData.isAnonymous && (
             <>
-              <div>
-                <label className="block text-sm mb-1">Owner Name</label>
-                <input
+              <Box>
+                <Text as="label" display="block" fontSize="sm" mb={1}>Owner Name</Text>
+                <Input
                   type="text"
-                  className="w-full px-3 py-2 bg-gray-800 rounded"
+                  bg="gray.800"
                   value={formData.ownerName}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      ownerName: e.target.value,
-                    }))
-                  }
+                  onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
                 />
-              </div>
-              <div>
-                <label className="block text-sm mb-1">Owner Description</label>
-                <textarea
-                  className="w-full px-3 py-2 bg-gray-800 rounded"
+              </Box>
+
+              <Box>
+                <Text as="label" display="block" fontSize="sm" mb={1}>Owner Description</Text>
+                <Textarea
+                  bg="gray.800"
                   value={formData.ownerDescription}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      ownerDescription: e.target.value,
-                    }))
-                  }
+                  onChange={(e) => setFormData({ ...formData, ownerDescription: e.target.value })}
                 />
-              </div>
-              <div>
-                <label className="block text-sm mb-1">Owner Website</label>
-                <input
+              </Box>
+
+              <Box>
+                <Text as="label" display="block" fontSize="sm" mb={1}>Owner Website</Text>
+                <Input
                   type="url"
-                  className="w-full px-3 py-2 bg-gray-800 rounded"
+                  bg="gray.800"
                   value={formData.ownerWebsite}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      ownerWebsite: e.target.value,
-                    }))
-                  }
+                  onChange={(e) => setFormData({ ...formData, ownerWebsite: e.target.value })}
                 />
-              </div>
+              </Box>
             </>
           )}
-          <button
+
+          <Button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded"
+            w="full"
+            bg="blue.600"
+            _hover={{ bg: 'blue.700' }}
+            color="white"
           >
             Add Site
-          </button>
-        </form>
-      </div>
-    </div>
+          </Button>
+        </VStack>
+      </Box>
+    </Box>
   );
 }
 
@@ -570,8 +587,8 @@ export default function Map() {
   }, [atmosphereStyle, projection]);
 
   return (
-    <div className="relative w-full h-screen">
-      <div ref={mapContainer} className="w-full h-full" />
+    <Box position="relative" w="full" h="100vh">
+      <Box ref={mapContainer} w="full" h="full" />
 
       {/* Map Controls */}
       <MapControls
@@ -610,6 +627,6 @@ export default function Map() {
           onClose={() => setShowForm(false)}
         />
       )}
-    </div>
+    </Box>
   );
 }

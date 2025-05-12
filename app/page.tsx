@@ -2,6 +2,7 @@
 
 import React from 'react'
 import dynamic from 'next/dynamic'
+import { Box } from '@chakra-ui/react'
 
 const Map = dynamic(() => import('../components/Map'), {
   ssr: false
@@ -9,8 +10,8 @@ const Map = dynamic(() => import('../components/Map'), {
 
 export default function Home() {
   return (
-    <main className="min-h-screen">
+    <Box minH="100vh">
       <Map />
-    </main>
+    </Box>
   )
 } 
