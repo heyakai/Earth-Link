@@ -503,7 +503,7 @@ export default function Map() {
           enableHighAccuracy: true
         },
         trackUserLocation: true,
-        showUserHeading: true,
+        showUserHeading: false,
         showUserLocation: true,
         showAccuracyCircle: true,
         fitBoundsOptions: {

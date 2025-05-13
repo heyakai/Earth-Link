@@ -64,7 +64,7 @@ export const mapConfig = {
     maxPitch: 85,
     dragRotate: true,
     touchZoomRotate: true,
-    attributionControl: true,
+    attributionControl: false,
   },
   defaultProjection: "globe" as "globe" | "mercator",
 }; 

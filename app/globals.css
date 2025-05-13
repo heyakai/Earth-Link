@@ -39,3 +39,8 @@ body {
 .mapboxgl-ctrl-geolocate {
   display: none !important;
 } 
+
+/* Hide Mapbox logo */
+.mapboxgl-ctrl-logo {
+  display: none !important;
+}

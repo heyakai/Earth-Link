@@ -7,6 +7,7 @@
 - **Library**: 
   - [React](https://reactjs.org/) - A JavaScript library for building user interfaces.
   - [React DOM](https://reactjs.org/docs/react-dom.html) - Provides DOM-specific methods for React.
+  - [Chakra UI](https://chakra-ui.com/) - A simple, modular, and accessible component library for React.
 
 - **Styling**: 
   - [Tailwind CSS](https://tailwindcss.com/) - A utility-first CSS framework for rapid UI development.
