@@ -56,15 +56,75 @@ export default function MapControls({
   // Handler for locate user button
   const handleLocateUser = async () => {
     try {
-      await onLocateUser();
+      // Check if Permissions API is available
+      if (navigator.permissions) {
+        const status = await navigator.permissions.query({ name: 'geolocation' });
+        if (status.state === 'granted') {
+          toaster.success({
+            title: 'Location Access Granted',
+            description: 'Successfully accessed your location',
+          });
+          await onLocateUser();
+          return;
+        } else if (status.state === 'denied') {
+          toaster.error({
+            title: 'Location Access Denied',
+            description: 'Please allow location access to use this feature',
+          });
+          return;
+        }
+        // If 'prompt', show loading toast and trigger permission prompt
+        const locationPromise = new Promise<void>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(
+            () => resolve(),
+            (error) => reject(error),
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+          );
+        });
+        toaster.promise(locationPromise, {
+          loading: {
+            title: 'Requesting Location',
+            description: 'Please allow location access in your browser',
+          },
+          success: {
+            title: 'Location Access Granted',
+            description: 'Successfully accessed your location',
+          },
+          error: {
+            title: 'Location Access Denied',
+            description: 'Please allow location access to use this feature',
+          },
+        });
+        await locationPromise;
+        await onLocateUser();
+      } else {
+        // Fallback for browsers without Permissions API
+        const locationPromise = new Promise<void>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(
+            () => resolve(),
+            (error) => reject(error),
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+          );
+        });
+        toaster.promise(locationPromise, {
+          loading: {
+            title: 'Requesting Location',
+            description: 'Please allow location access in your browser',
+          },
+          success: {
+            title: 'Location Access Granted',
+            description: 'Successfully accessed your location',
+          },
+          error: {
+            title: 'Location Access Denied',
+            description: 'Please allow location access to use this feature',
+          },
+        });
+        await locationPromise;
+        await onLocateUser();
+      }
     } catch (err) {
-      toaster.create({
-        title: 'Location Permission Needed',
-        description: 'Please allow location access to use this feature.',
-        type: 'warning',
-        duration: 5000,
-        meta: { closable: true },
-      });
+      // No need to show another toast, already handled
     }
   };
 
