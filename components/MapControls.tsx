@@ -241,7 +241,7 @@ export default function MapControls({
           borderColor={isLocating ? "blue.300" : "gray.700"}
           borderWidth="1px"
           _hover={{ bg: isLocating ? "blue.700" : "gray.700" }}
-          _active={{ bg: isLocating ? "blue.800" : "black.900", transform: "scale(0.95)" }}
+          _active={{ bg: isLocating ? "blue.800" : "gray.900", transform: "scale(0.95)" }}
         >
           {isLocating ? <Spinner size="sm" color="blue.200" /> : <HiLocationMarker />}
         </IconButton>

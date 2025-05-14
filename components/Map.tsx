@@ -478,14 +478,13 @@ export default function Map() {
   const handleRotateToggle = () => {
     if (!map.current) return;
     
-    setIsRotating(!isRotating);
-    
     if (!isRotating) {
       // Start rotation
+      setIsRotating(true);
       const rotate = () => {
         if (!map.current) return;
         const center = map.current.getCenter();
-        center.lng -= 5; // Adjust rotation speed here
+        center.lng -= 2.5; // Adjust rotation speed here
         map.current.easeTo({
           center: center,
           duration: 1000,
@@ -495,11 +494,14 @@ export default function Map() {
       };
       rotationAnimationRef.current = requestAnimationFrame(rotate);
     } else {
-      // Stop rotation
+      // Stop rotation immediately
       if (rotationAnimationRef.current) {
         cancelAnimationFrame(rotationAnimationRef.current);
         rotationAnimationRef.current = null;
+        // Stop any ongoing easeTo animation
+        map.current.stop();
       }
+      setIsRotating(false);
     }
   };
 
