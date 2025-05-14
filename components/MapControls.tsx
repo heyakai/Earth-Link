@@ -45,6 +45,8 @@ export default function MapControls({
   onRotateToggle,
 }: MapControlsProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isLocationActive, setIsLocationActive] = useState(false);
+  const [isRequestingPermission, setIsRequestingPermission] = useState(false);
 
   const atmosphereOptions = createListCollection({
     items: Object.keys(atmospherePresets).map(style => ({
@@ -56,14 +58,18 @@ export default function MapControls({
   // Handler for locate user button
   const handleLocateUser = async () => {
     try {
+      // If location is already active, just toggle it off
+      if (isLocationActive) {
+        setIsLocationActive(false);
+        await onLocateUser();
+        return;
+      }
+
       // Check if Permissions API is available
       if (navigator.permissions) {
         const status = await navigator.permissions.query({ name: 'geolocation' });
         if (status.state === 'granted') {
-          toaster.success({
-            title: 'Location Access Granted',
-            description: 'Successfully accessed your location',
-          });
+          setIsLocationActive(true);
           await onLocateUser();
           return;
         } else if (status.state === 'denied') {
@@ -74,54 +80,74 @@ export default function MapControls({
           return;
         }
         // If 'prompt', show loading toast and trigger permission prompt
-        const locationPromise = new Promise<void>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(
-            () => resolve(),
-            (error) => reject(error),
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-          );
-        });
-        toaster.promise(locationPromise, {
-          loading: {
-            title: 'Requesting Location',
-            description: 'Please allow location access in your browser',
-          },
-          success: {
-            title: 'Location Access Granted',
-            description: 'Successfully accessed your location',
-          },
-          error: {
-            title: 'Location Access Denied',
-            description: 'Please allow location access to use this feature',
-          },
-        });
-        await locationPromise;
-        await onLocateUser();
+        if (!isRequestingPermission) {
+          setIsRequestingPermission(true);
+          const locationPromise = new Promise<void>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(
+              () => resolve(),
+              (error) => reject(error),
+              { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+          });
+          toaster.promise(locationPromise, {
+            loading: {
+              title: 'Requesting Location',
+              description: 'Please allow location access in your browser',
+            },
+            success: {
+              title: 'Location Access Granted',
+              description: 'Successfully accessed your location',
+            },
+            error: {
+              title: 'Location Access Denied',
+              description: 'Please allow location access to use this feature',
+            },
+          });
+          try {
+            await locationPromise;
+            setIsLocationActive(true);
+            await onLocateUser();
+          } catch (err) {
+            // Error already handled by toaster
+          } finally {
+            setIsRequestingPermission(false);
+          }
+        }
       } else {
         // Fallback for browsers without Permissions API
-        const locationPromise = new Promise<void>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(
-            () => resolve(),
-            (error) => reject(error),
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-          );
-        });
-        toaster.promise(locationPromise, {
-          loading: {
-            title: 'Requesting Location',
-            description: 'Please allow location access in your browser',
-          },
-          success: {
-            title: 'Location Access Granted',
-            description: 'Successfully accessed your location',
-          },
-          error: {
-            title: 'Location Access Denied',
-            description: 'Please allow location access to use this feature',
-          },
-        });
-        await locationPromise;
-        await onLocateUser();
+        if (!isRequestingPermission) {
+          setIsRequestingPermission(true);
+          const locationPromise = new Promise<void>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(
+              () => resolve(),
+              (error) => reject(error),
+              { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+          });
+          toaster.promise(locationPromise, {
+            loading: {
+              title: 'Requesting Location',
+              description: 'Please allow location access in your browser',
+            },
+            success: {
+              title: 'Location Access Granted',
+              description: 'Successfully accessed your location',
+            },
+            error: {
+              title: 'Location Access Denied',
+              description: 'Please allow location access to use this feature',
+            },
+          });
+          try {
+            await locationPromise;
+            setIsLocationActive(true);
+            await onLocateUser();
+          } catch (err) {
+            // Error already handled by toaster
+          } finally {
+            setIsRequestingPermission(false);
+          }
+        }
       }
     } catch (err) {
       // No need to show another toast, already handled
@@ -296,12 +322,12 @@ export default function MapControls({
           onClick={handleLocateUser}
           variant="outline"
           color="white"
-          bg={isLocating ? "blue.600" : "gray.800"}
+          bg={isLocationActive ? "green.600" : isLocating ? "blue.600" : "gray.800"}
           borderRadius="lg"
-          borderColor={isLocating ? "blue.300" : "gray.700"}
+          borderColor={isLocationActive ? "green.300" : isLocating ? "blue.300" : "gray.700"}
           borderWidth="1px"
-          _hover={{ bg: isLocating ? "blue.700" : "gray.700" }}
-          _active={{ bg: isLocating ? "blue.800" : "gray.900", transform: "scale(0.95)" }}
+          _hover={{ bg: isLocationActive ? "green.700" : isLocating ? "blue.700" : "gray.700" }}
+          _active={{ bg: isLocationActive ? "green.800" : isLocating ? "blue.800" : "gray.900", transform: "scale(0.95)" }}
         >
           {isLocating ? <Spinner size="sm" color="blue.200" /> : <HiLocationMarker />}
         </IconButton>
