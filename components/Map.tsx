@@ -21,6 +21,7 @@ import {
   useDisclosure,
 } from '@chakra-ui/react'
 import type { ChangeEvent } from 'react'
+import { toaster } from "@/components/ui/toaster"
 
 // You'll need to replace this with your Mapbox token
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
@@ -478,7 +479,19 @@ export default function Map() {
   const handleRotateToggle = () => {
     if (!map.current) return;
     
+    const currentZoom = map.current.getZoom();
+    const MAX_ZOOM_FOR_SPIN = 6.5; // Maximum zoom level where spin is allowed
+    
     if (!isRotating) {
+      // Check if zoom level is too high
+      if (currentZoom > MAX_ZOOM_FOR_SPIN) {
+        toaster.error({
+          title: 'Spin Disabled',
+          description: 'Please zoom out to spin',
+        });
+        return;
+      }
+      
       // Start rotation
       setIsRotating(true);
       const rotate = () => {
@@ -504,6 +517,36 @@ export default function Map() {
       setIsRotating(false);
     }
   };
+
+  // Add zoom change handler to disable spin when zoomed in too far
+  useEffect(() => {
+    if (!map.current) return;
+
+    const handleZoom = () => {
+      if (!map.current) return;
+      const currentZoom = map.current.getZoom();
+      const MAX_ZOOM_FOR_SPIN = 6.5;
+
+      if (isRotating && currentZoom > MAX_ZOOM_FOR_SPIN) {
+        // Stop rotation if zoomed in too far
+        if (rotationAnimationRef.current) {
+          cancelAnimationFrame(rotationAnimationRef.current);
+          rotationAnimationRef.current = null;
+          map.current.stop();
+        }
+        setIsRotating(false);
+        toaster.info({
+          title: 'Spin Disabled',
+          description: 'Spin has been disabled due to high zoom level',
+        });
+      }
+    };
+
+    map.current.on('zoom', handleZoom);
+    return () => {
+      map.current?.off('zoom', handleZoom);
+    };
+  }, [isRotating]);
 
   useEffect(() => {
     if (!mapContainer.current) {
