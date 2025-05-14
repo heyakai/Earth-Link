@@ -308,7 +308,7 @@ export default function MapControls({
           onClick={onRotateToggle}
           variant="outline"
           color="white"
-          bg={isRotating ? "blue.600" : "gray.800"}
+          bg={isRotating ? "blue.800" : "gray.800"}
           borderRadius="lg"
           borderColor={isRotating ? "blue.300" : "gray.700"}
           borderWidth="1px"

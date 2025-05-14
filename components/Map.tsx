@@ -66,7 +66,10 @@ function ContextMenu({ x, y, onAddSite, onClose }: ContextMenuProps) {
 
   return (
     <Box
+      ref={menuRef}
       position="absolute"
+      left={`${adjustedX}px`}
+      top={`${adjustedY}px`}
       zIndex={50}
       bg="blackAlpha.900"
       borderRadius="lg"
@@ -486,8 +489,8 @@ export default function Map() {
       // Check if zoom level is too high
       if (currentZoom > MAX_ZOOM_FOR_SPIN) {
         toaster.error({
-          title: 'Spin Disabled',
-          description: 'Please zoom out to spin',
+          title: 'Cannot Enable Spin',
+          description: 'Please zoom out to use the spin feature',
         });
         return;
       }
