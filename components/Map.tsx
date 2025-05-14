@@ -267,6 +267,8 @@ export default function Map() {
   const [atmosphereStyle, setAtmosphereStyle] = useState<string>("night");
   const geolocateControlRef = useRef<mapboxgl.GeolocateControl | null>(null);
   const [isLocating, setIsLocating] = useState(false);
+  const [isRotating, setIsRotating] = useState(false);
+  const rotationAnimationRef = useRef<number | null>(null);
 
   const loadMarkers = async () => {
     try {
@@ -473,6 +475,34 @@ export default function Map() {
     }
   };
 
+  const handleRotateToggle = () => {
+    if (!map.current) return;
+    
+    setIsRotating(!isRotating);
+    
+    if (!isRotating) {
+      // Start rotation
+      const rotate = () => {
+        if (!map.current) return;
+        const center = map.current.getCenter();
+        center.lng -= 5; // Adjust rotation speed here
+        map.current.easeTo({
+          center: center,
+          duration: 1000,
+          easing: (n) => n,
+        });
+        rotationAnimationRef.current = requestAnimationFrame(rotate);
+      };
+      rotationAnimationRef.current = requestAnimationFrame(rotate);
+    } else {
+      // Stop rotation
+      if (rotationAnimationRef.current) {
+        cancelAnimationFrame(rotationAnimationRef.current);
+        rotationAnimationRef.current = null;
+      }
+    }
+  };
+
   useEffect(() => {
     if (!mapContainer.current) {
       console.error("Map container not found");
@@ -586,6 +616,15 @@ export default function Map() {
     }
   }, [atmosphereStyle, projection]);
 
+  // Clean up rotation animation on unmount
+  useEffect(() => {
+    return () => {
+      if (rotationAnimationRef.current) {
+        cancelAnimationFrame(rotationAnimationRef.current);
+      }
+    };
+  }, []);
+
   return (
     <Box position="relative" w="full" h="100vh">
       <Box ref={mapContainer} w="full" h="full" />
@@ -599,6 +638,8 @@ export default function Map() {
         onLocateUser={handleLocateUser}
         onResetView={handleResetView}
         isLocating={isLocating}
+        isRotating={isRotating}
+        onRotateToggle={handleRotateToggle}
       />
 
       {showContextMenu && (

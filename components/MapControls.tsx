@@ -29,6 +29,8 @@ interface MapControlsProps {
   onLocateUser: () => void;
   onResetView: () => void;
   isLocating: boolean;
+  isRotating: boolean;
+  onRotateToggle: () => void;
 }
 
 export default function MapControls({
@@ -39,6 +41,8 @@ export default function MapControls({
   onLocateUser,
   onResetView,
   isLocating,
+  isRotating,
+  onRotateToggle,
 }: MapControlsProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -214,16 +218,16 @@ export default function MapControls({
       {/* Location and Reset View Controls */}
       <VStack position="fixed" bottom="4" right="4" zIndex="20" gap="2">
         <IconButton
-          aria-label="Reset View"
-          onClick={onResetView}
+          aria-label="Rotate Earth"
+          onClick={onRotateToggle}
           variant="outline"
           color="white"
-          bg="gray.800"
+          bg={isRotating ? "blue.600" : "gray.800"}
           borderRadius="lg"
-          borderColor="gray.700"
+          borderColor={isRotating ? "blue.300" : "gray.700"}
           borderWidth="1px"
-          _hover={{ bg: "gray.700" }}
-          _active={{ transform: "scale(0.95)" }}
+          _hover={{ bg: isRotating ? "blue.700" : "gray.700" }}
+          _active={{ bg: isRotating ? "blue.800" : "black.900", transform: "scale(0.95)" }}
         >
           <HiRefresh />
         </IconButton>
