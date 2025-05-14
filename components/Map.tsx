@@ -19,6 +19,8 @@ import {
   HStack,
   Text,
   useDisclosure,
+  Menu,
+  Portal,
 } from '@chakra-ui/react'
 import type { ChangeEvent } from 'react'
 import { toaster } from "@/components/ui/toaster"
@@ -48,58 +50,53 @@ interface ContextMenuProps {
 }
 
 function ContextMenu({ x, y, onAddSite, onClose }: ContextMenuProps) {
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        onClose();
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [onClose]);
-
   // Adjust position to keep menu within viewport
   const adjustedY = y + 200 > window.innerHeight ? y - 100 : y;
   const adjustedX = x + 200 > window.innerWidth ? x - 150 : x;
 
   return (
-    <Box
-      ref={menuRef}
-      position="absolute"
-      left={`${adjustedX}px`}
-      top={`${adjustedY}px`}
-      zIndex={50}
-      bg="blackAlpha.900"
-      borderRadius="lg"
-      shadow="lg"
-      w="160px"
-      py={2}
-    >
-      <Button
-        w="full"
-        px={4}
-        py={2}
-        color="white"
-        _hover={{ bg: 'blue.600' }}
-        textAlign="left"
-        onClick={onAddSite}
-      >
-        Add Site
-      </Button>
-      <Button
-        w="full"
-        px={4}
-        py={2}
-        color="white"
-        _hover={{ bg: 'blue.600' }}
-        textAlign="left"
-        onClick={onClose}
-      >
-        Cancel
-      </Button>
-    </Box>
+    <Menu.Root open onOpenChange={({ open }) => { if (!open) onClose(); }}>
+      <Portal>
+        <Menu.Positioner style={{ position: 'absolute', left: adjustedX, top: adjustedY, zIndex: 50 }}>
+          <Menu.Content
+            textAlign="left"
+            bg="gray.900"
+            borderColor="gray.700"
+            borderWidth="1px"
+            borderRadius="md"
+            boxShadow="xl"
+            // minW="160px"
+            py={1}
+            px={1}
+            style={{ transition: 'opacity 0.15s cubic-bezier(.4,0,.2,1)' }}
+            _open={{ opacity: 1, transform: 'scale(1)' }}
+            _closed={{ opacity: 0, transform: 'scale(0.95)' }}
+          >
+            <Menu.Item
+              value="add-site"
+              onSelect={onAddSite} 
+              bg="gray.900"
+              _hover={{ bg: 'gray.800' }} 
+              px={2} 
+              py={1.5} 
+              color="white"
+              >
+              Add Site
+            </Menu.Item>
+            <Menu.Item 
+              value="cancel" 
+              onSelect={onClose} 
+              bg="gray.900"
+              _hover={{ bg: 'gray.800' }} 
+              px={2} 
+              py={1.5} 
+              color="white">
+              Cancel
+            </Menu.Item>
+          </Menu.Content>
+        </Menu.Positioner>
+      </Portal>
+    </Menu.Root>
   );
 }
 
