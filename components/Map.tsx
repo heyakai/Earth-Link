@@ -21,6 +21,8 @@ import {
   useDisclosure,
   Menu,
   Portal,
+  Dialog,
+  Link,
 } from '@chakra-ui/react'
 import type { ChangeEvent } from 'react'
 import { toaster } from "@/components/ui/toaster"
@@ -252,24 +254,23 @@ function AddSiteForm({ position, onSubmit, onClose }: AddSiteFormProps) {
   );
 }
 
-export default function Map() {
+const Map = () => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
-  const mapRef = useRef<mapboxgl.Map | null>(null);
   const [markers, setMarkers] = useState<Marker[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [projection, setProjection] = useState<"globe" | "mercator">(mapConfig.defaultProjection);
   const [showContextMenu, setShowContextMenu] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [selectedPosition, setSelectedPosition] =
-    useState<mapboxgl.LngLat | null>(null);
   const [contextMenuPos, setContextMenuPos] = useState({ x: 0, y: 0 });
-  const [isLoading, setIsLoading] = useState(true);
-  const markersRef = useRef<mapboxgl.Marker[]>([]);
-  const [projection, setProjection] = useState<"globe" | "mercator">(mapConfig.defaultProjection);
+  const [selectedPosition, setSelectedPosition] = useState<mapboxgl.LngLat | null>(null);
+  const [selectedMarker, setSelectedMarker] = useState<Marker | null>(null);
   const [atmosphereStyle, setAtmosphereStyle] = useState<string>("night");
   const geolocateControlRef = useRef<mapboxgl.GeolocateControl | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [isRotating, setIsRotating] = useState(false);
   const rotationAnimationRef = useRef<number | null>(null);
+  const { open, onOpen, onClose } = useDisclosure();
 
   const loadMarkers = async () => {
     try {
@@ -277,45 +278,61 @@ export default function Map() {
       const data = await response.json();
       setMarkers(data);
 
-      // Clear existing markers
-      markersRef.current.forEach((marker) => marker.remove());
-      markersRef.current = [];
+      if (!map.current) return;
 
-      // Add markers to the map
-      data.forEach((marker: Marker) => {
-        const newMarker = new mapboxgl.Marker()
-          .setLngLat([marker.longitude, marker.latitude])
-          .setPopup(
-            new mapboxgl.Popup().setHTML(`
-            <div class="p-3">
-              <h3 class="font-bold mb-2">${marker.siteName}</h3>
-              <p class="mb-2">${marker.siteDescription || ""}</p>
-              <a href="${marker.website}" target="_blank" rel="noopener noreferrer"
-                 class="text-blue-400 hover:text-blue-300 block mb-2">Visit Website</a>
-              ${
-                !marker.isAnonymous
-                  ? `
-                <div class="border-t pt-2 mt-2">
-                  <p class="font-semibold">${marker.ownerName || ""}</p>
-                  <p class="text-sm">${marker.ownerDescription || ""}</p>
-                  ${
-                    marker.ownerWebsite
-                      ? `
-                    <a href="${marker.ownerWebsite}" target="_blank" rel="noopener noreferrer"
-                       class="text-blue-400 hover:text-blue-300 text-sm">Owner's Website</a>
-                  `
-                      : ""
-                  }
-                </div>
-              `
-                  : ""
-              }
-            </div>
-          `),
-          )
-          .addTo(map.current!);
-        markersRef.current.push(newMarker);
+      // Remove existing source and layer if they exist
+      if (map.current.getSource('markers')) {
+        map.current.removeLayer('markers-layer');
+        map.current.removeSource('markers');
+      }
+
+      // Add the source
+      map.current.addSource('markers', {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: data.map((marker: Marker) => ({
+            type: 'Feature',
+            geometry: {
+              type: 'Point',
+              coordinates: [marker.longitude, marker.latitude]
+            },
+            properties: marker
+          }))
+        }
       });
+
+      // Add the circle layer
+      map.current.addLayer({
+        id: 'markers-layer',
+        type: 'circle',
+        source: 'markers',
+        paint: {
+          'circle-radius': 6,
+          'circle-color': '#4A90E2',
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#ffffff',
+          'circle-opacity': 0.8
+        }
+      });
+
+      // Add hover effect
+      map.current.on('mouseenter', 'markers-layer', () => {
+        map.current!.getCanvas().style.cursor = 'pointer';
+      });
+
+      map.current.on('mouseleave', 'markers-layer', () => {
+        map.current!.getCanvas().style.cursor = '';
+      });
+
+      // Add click handler
+      map.current.on('click', 'markers-layer', (e) => {
+        if (!e.features?.[0]) return;
+        const marker = e.features[0].properties as Marker;
+        setSelectedMarker(marker);
+        onOpen();
+      });
+
     } catch (error) {
       console.error("Failed to load markers:", error);
     } finally {
@@ -345,49 +362,33 @@ export default function Map() {
         throw new Error(errorData.error || "Failed to add marker");
       }
 
-      const newMarker = new mapboxgl.Marker()
-        .setLngLat([lngLat.lng, lngLat.lat])
-        .setPopup(
-          new mapboxgl.Popup().setHTML(`
-          <div class="p-3">
-            <h3 class="font-bold mb-2">${markerData.siteName}</h3>
-            <p class="mb-2">${markerData.siteDescription || ""}</p>
-            <a href="${markerData.website}" target="_blank" rel="noopener noreferrer"
-               class="text-blue-400 hover:text-blue-300 block mb-2">Visit Website</a>
-            ${
-              !markerData.isAnonymous
-                ? `
-              <div class="border-t pt-2 mt-2">
-                <p class="font-semibold">${markerData.ownerName || ""}</p>
-                <p class="text-sm">${markerData.ownerDescription || ""}</p>
-                ${
-                  markerData.ownerWebsite
-                    ? `
-                  <a href="${markerData.ownerWebsite}" target="_blank" rel="noopener noreferrer"
-                     class="text-blue-400 hover:text-blue-300 text-sm">Owner's Website</a>
-                `
-                    : ""
-                }
-              </div>
-            `
-                : ""
-            }
-          </div>
-        `),
-        )
-        .addTo(map.current!);
+      const newMarker = {
+        longitude: lngLat.lng,
+        latitude: lngLat.lat,
+        ...markerData,
+      };
 
-      setMarkers((prev) => [
-        ...prev,
-        {
-          longitude: lngLat.lng,
-          latitude: lngLat.lat,
-          ...markerData,
-        } as Marker,
-      ]);
+      setMarkers((prev) => [...prev, newMarker]);
+
+      // Update the GeoJSON source
+      if (map.current && map.current.getSource('markers')) {
+        const source = map.current.getSource('markers') as mapboxgl.GeoJSONSource;
+        source.setData({
+          type: 'FeatureCollection',
+          features: [...markers, newMarker].map(marker => ({
+            type: 'Feature',
+            geometry: {
+              type: 'Point',
+              coordinates: [marker.longitude, marker.latitude]
+            },
+            properties: marker
+          }))
+        });
+      }
+
     } catch (error) {
       console.error("Failed to add marker:", error);
-      throw error; // Re-throw to handle in the form submission
+      throw error;
     }
   };
 
@@ -556,8 +557,7 @@ export default function Map() {
 
     try {
       if (!mapboxgl.accessToken) {
-        console.error("Mapbox token not found");
-        return;
+        throw new Error("Mapbox token is required");
       }
 
       map.current = new mapboxgl.Map({
@@ -565,27 +565,21 @@ export default function Map() {
         style: mapConfig.style,
         center: mapConfig.initialView.center,
         zoom: mapConfig.initialView.zoom,
+        projection: mapConfig.defaultProjection,
         maxPitch: mapConfig.initialView.maxPitch,
         dragRotate: mapConfig.initialView.dragRotate,
         touchZoomRotate: mapConfig.initialView.touchZoomRotate,
-        projection: projection,
         attributionControl: mapConfig.initialView.attributionControl,
       });
 
       // Add geolocate control
       geolocateControlRef.current = new mapboxgl.GeolocateControl({
         positionOptions: {
-          enableHighAccuracy: true
+          enableHighAccuracy: true,
         },
         trackUserLocation: true,
-        showUserHeading: false,
-        showUserLocation: true,
-        showAccuracyCircle: true,
-        fitBoundsOptions: {
-          maxZoom: 15
-        }
       });
-      map.current.addControl(geolocateControlRef.current, 'top-right');
+      map.current.addControl(geolocateControlRef.current);
 
       // Add event listeners for geolocate control
       map.current.on('geolocate', () => {
@@ -599,28 +593,19 @@ export default function Map() {
       // Wait for map to load before adding markers
       map.current.on("load", () => {
         console.log("Map loaded successfully");
-        mapRef.current = map.current;
+        loadMarkers();
+      });
 
-        // Set up a handler for style.load to ensure the style is fully loaded
-        map.current?.on("style.load", () => {
-          console.log("Map style loaded successfully");
-          
-          // Add custom atmosphere styling
-          if (projection === "globe") {
-            const styleKey = atmosphereStyle as keyof typeof atmospherePresets;
-            const selectedStyle = atmospherePresets[styleKey] || atmospherePresets.night;
-            map.current?.setFog(selectedStyle);
-          }
-        });
-
-        // Apply initial atmosphere style
+      // Set up a handler for style.load to ensure the style is fully loaded
+      map.current.on("style.load", () => {
+        console.log("Map style loaded successfully");
+        
+        // Add custom atmosphere styling
         if (projection === "globe") {
           const styleKey = atmosphereStyle as keyof typeof atmospherePresets;
           const selectedStyle = atmospherePresets[styleKey] || atmospherePresets.night;
           map.current?.setFog(selectedStyle);
         }
-
-        loadMarkers();
       });
 
       map.current.on("error", (e) => {
@@ -644,8 +629,9 @@ export default function Map() {
       });
 
       return () => {
-        markersRef.current.forEach((marker) => marker.remove());
-        map.current?.remove();
+        if (map.current) {
+          map.current.remove();
+        }
       };
     } catch (error) {
       console.error("Error initializing map:", error);
@@ -654,11 +640,25 @@ export default function Map() {
 
   // Handle atmosphere style changes
   useEffect(() => {
-    if (map.current && projection === "globe" && map.current.isStyleLoaded()) {
-      const styleKey = atmosphereStyle as keyof typeof atmospherePresets;
-      const selectedStyle = atmospherePresets[styleKey] || atmospherePresets.night;
-      map.current.setFog(selectedStyle);
-    }
+    if (!map.current) return;
+
+    const applyFogStyle = () => {
+      if (map.current?.isStyleLoaded() && projection === "globe") {
+        const styleKey = atmosphereStyle as keyof typeof atmospherePresets;
+        const selectedStyle = atmospherePresets[styleKey] || atmospherePresets.night;
+        map.current.setFog(selectedStyle);
+      }
+    };
+
+    // If style is already loaded, apply immediately
+    applyFogStyle();
+
+    // Also listen for style.load to ensure it's applied after style changes
+    map.current.on("style.load", applyFogStyle);
+
+    return () => {
+      map.current?.off("style.load", applyFogStyle);
+    };
   }, [atmosphereStyle, projection]);
 
   // Clean up rotation animation on unmount
@@ -698,6 +698,7 @@ export default function Map() {
           onClose={() => setShowContextMenu(false)}
         />
       )}
+
       {showForm && selectedPosition && (
         <AddSiteForm
           position={selectedPosition}
@@ -713,6 +714,62 @@ export default function Map() {
           onClose={() => setShowForm(false)}
         />
       )}
+
+      {/* Profile Dialog */}
+      <Dialog.Root open={open} onOpenChange={({ open }) => !open && onClose()}>
+        <Dialog.Trigger asChild>
+          <Box display="none" />
+        </Dialog.Trigger>
+        <Portal>
+          <Dialog.Backdrop />
+          <Dialog.Positioner>
+            <Dialog.Content maxW="container.md" w="full" bg="gray.900" color="white">
+              <Dialog.CloseTrigger asChild>
+                <Button position="absolute" right="4" top="4" color="gray.400" _hover={{ color: 'white' }}>
+                  ×
+                </Button>
+              </Dialog.CloseTrigger>
+              {selectedMarker && (
+                <Box p="6">
+                  <Text fontSize="2xl" fontWeight="bold" mb="4">{selectedMarker.siteName}</Text>
+                  <Text mb="4">{selectedMarker.siteDescription || ""}</Text>
+                  <Link 
+                    href={selectedMarker.website} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    color="blue.400" 
+                    _hover={{ color: 'blue.300' }} 
+                    mb="4" 
+                    display="block"
+                  >
+                    Visit Website
+                  </Link>
+                  {!selectedMarker.isAnonymous && (
+                    <Box borderTopWidth="1px" borderColor="gray.700" pt="4" mt="4">
+                      <Text fontWeight="semibold">{selectedMarker.ownerName || ""}</Text>
+                      <Text fontSize="sm" mb="2">{selectedMarker.ownerDescription || ""}</Text>
+                      {selectedMarker.ownerWebsite && (
+                        <Link 
+                          href={selectedMarker.ownerWebsite} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          color="blue.400" 
+                          _hover={{ color: 'blue.300' }} 
+                          fontSize="sm"
+                        >
+                          Owner's Website
+                        </Link>
+                      )}
+                    </Box>
+                  )}
+                </Box>
+              )}
+            </Dialog.Content>
+          </Dialog.Positioner>
+        </Portal>
+      </Dialog.Root>
     </Box>
   );
 }
+
+export default Map;
